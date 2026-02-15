@@ -2,11 +2,25 @@
 
 ---
 
+## Spesifikasi Mesin
+
+| Item | Detail |
+|------|--------|
+| OS | Fedora Linux 43 (Workstation Edition) |
+| Kernel | Linux 6.18.7-200.fc43.x86_64 |
+| Architecture | x86-64 |
+| Desktop | GNOME (Wayland) |
+| Hardware | Gigabyte B850M AORUS ELITE WIFI6E ICE |
+| Bun | 1.3.2 |
+| Rust | rustc 1.93.0 (254b59607 2026-01-19) |
+
+---
+
 ## 1. Instalasi
 
-### 1.1 System Dependencies (Fedora)
+### 1.1 System Dependencies (Fedora 43)
 
-Lo udah punya Rust (`rustc 1.93.0`) dan Bun (`1.3.2`), jadi tinggal install system dependencies yang dibutuhin Tauri:
+Pastiin Rust dan Bun udah terinstall. Lalu install system dependencies yang dibutuhin Tauri:
 
 ```bash
 sudo dnf check-update
@@ -23,6 +37,12 @@ sudo dnf install webkit2gtk4.1-devel \
 sudo dnf group install "c-development"
 ```
 
+**Dependency tambahan untuk AppImage bundling:**
+
+```bash
+sudo dnf install fuse fuse-libs
+```
+
 **Penjelasan package:**
 
 | Package | Fungsi |
@@ -33,15 +53,16 @@ sudo dnf group install "c-development"
 | `librsvg2-devel` | SVG rendering untuk icon |
 | `libxdo-devel` | Keyboard/mouse automation library |
 | `c-development` group | gcc, make, pkg-config, dll |
+| `fuse` + `fuse-libs` | Dibutuhin untuk AppImage bundling |
 
 ### 1.2 Verifikasi Instalasi
 
 Setelah install, pastiin semuanya ready:
 
 ```bash
-rustc --version     # harus muncul: rustc 1.93.0
-cargo --version     # harusnya ikut terinstall bareng rustc
-bun --version       # harus muncul: 1.3.2
+rustc --version       # rustc 1.93.0
+cargo --version       # ikut terinstall bareng rustc
+bun --version         # 1.3.2
 pkg-config --version  # pastiin ada
 ```
 
@@ -57,10 +78,7 @@ Nanti bakal muncul prompt interaktif, pilih seperti ini:
 ✔ Project name · my-app
 ✔ Identifier · com.my-app.app
 ✔ Choose which language to use for your frontend · TypeScript / JavaScript
-✔ Choose your package manager · bunbun --version
-1.3.2
-rustc --version
-rustc 1.93.0 (254b59607 2026-01-19)
+✔ Choose your package manager · bun
 ✔ Choose your UI template · React
 ✔ Choose your UI flavor · TypeScript
 ```
@@ -149,10 +167,12 @@ const greeting = await invoke("greet", { name: "World" });
 
 ## 3. Build untuk Distribusi
 
-### 3.1 Build di Linux (Fedora)
+### 3.1 Build di Linux (Fedora 43)
+
+**PENTING: Di Fedora 43, pakai `NO_STRIP=true` untuk menghindari error linuxdeploy.**
 
 ```bash
-bun run tauri build
+NO_STRIP=true bun run tauri build
 ```
 
 Output ada di `src-tauri/target/release/bundle/`:
@@ -280,7 +300,7 @@ GitHub Actions otomatis build untuk Linux, macOS (ARM + Intel), dan Windows, lal
 | Buat project baru | `bun create tauri-app` |
 | Install dependencies | `bun install` |
 | Dev mode (hot reload) | `bun run tauri dev` |
-| Build production | `bun run tauri build` |
+| Build production (Fedora 43) | `NO_STRIP=true bun run tauri build` |
 | Cek environment | `bunx tauri info` |
 | Generate app icons | `bunx tauri icon ./app-icon.png` |
 
@@ -290,6 +310,8 @@ GitHub Actions otomatis build untuk Linux, macOS (ARM + Intel), dan Windows, lal
 
 - **Cross-compile tidak didukung.** Lo harus build di masing-masing OS target, atau pakai CI/CD seperti GitHub Actions.
 - **AppImage** adalah format terbaik untuk distribusi Linux universal — portable dan gak perlu install.
-- **Tauri v2 butuh `webkit2gtk-4.1`** (bukan 4.0), jadi Fedora 43 lo udah support.
+- **Tauri v2 butuh `webkit2gtk-4.1`** (bukan 4.0), Fedora 43 udah support.
 - **Ukuran binary Tauri sangat kecil** dibanding Electron (~2-10 MB vs ~150+ MB) karena pakai WebView bawaan OS.
 - **Pertama kali build agak lama** karena compile Rust crates, tapi setelah itu incremental.
+- **Fedora 43 butuh `NO_STRIP=true`** waktu build karena linuxdeploy bawaan Tauri gak kompatibel dengan format library `.so` baru.
+- **GNOME Wayland** kadang perlu log out → log in setelah install RPM biar app launcher bisa nge-launch app dengan bener.
