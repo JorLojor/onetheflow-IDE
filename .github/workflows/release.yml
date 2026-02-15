@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-
-  # Bisa trigger manual dari GitHub UI
   workflow_dispatch:
 
 jobs:
@@ -17,28 +15,28 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux
           - platform: ubuntu-22.04
             args: ''
-          # macOS ARM (Apple Silicon)
           - platform: macos-latest
             args: '--target aarch64-apple-darwin'
-          # macOS Intel
           - platform: macos-latest
             args: '--target x86_64-apple-darwin'
-          # Windows
           - platform: windows-latest
             args: ''
 
     runs-on: ${{ matrix.platform }}
 
+    defaults:
+      run:
+        working-directory: the-note-flow
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Linux dependencies
       - name: Install dependencies (Linux)
         if: matrix.platform == 'ubuntu-22.04'
+        working-directory: .
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -52,15 +50,12 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev
 
-      # Setup Bunn
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
-      # Setup Rust
       - name: Setup Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      # macOS: tambah target yang dibutuhin
       - name: Add macOS target (aarch64)
         if: matrix.args == '--target aarch64-apple-darwin'
         run: rustup target add aarch64-apple-darwin
@@ -69,28 +64,25 @@ jobs:
         if: matrix.args == '--target x86_64-apple-darwin'
         run: rustup target add x86_64-apple-darwin
 
-      # Cache Rust build
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: 'the-note-flow/src-tauri -> target'
 
-      # Install frontend dependencies
       - name: Install frontend dependencies
         run: bun install
 
-      # Build & release
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Fix linuxdeploy strip error di Ubuntu runner
           NO_STRIP: ${{ matrix.platform == 'ubuntu-22.04' && 'true' || '' }}
         with:
+          projectPath: the-note-flow
           tagName: ${{ github.ref_name }}
           releaseName: 'Release ${{ github.ref_name }}'
           releaseBody: |
-            ## Downloadg
+            ## Download
 
             Pilih installer sesuai OS:
             - **Linux:** `.AppImage` (portable) atau `.deb` / `.rpm`
